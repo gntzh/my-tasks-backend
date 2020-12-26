@@ -1,5 +1,5 @@
-from typing import Any, Generic, Optional, Protocol, Type, TypeVar, Union
 import json
+from typing import Any, Generic, Optional, Protocol, Type, TypeVar, Union
 
 from celery import schedules
 from fastapi.encoders import jsonable_encoder
@@ -9,7 +9,14 @@ from sqlalchemy.orm.session import Session
 
 from src import schemas
 from src.infra.session import get_session
-from src.models import PERIOD_CHOICES, IntervalSchedule, PeriodicTask, PeriodicTasks
+from src.models import (
+    PERIOD_CHOICES,
+    CrontabSchedule,
+    IntervalSchedule,
+    PeriodicTask,
+    PeriodicTasks,
+)
+from src.tz_crontab import TZCrontab
 from src.utils.timezone import utcnow
 
 
@@ -49,7 +56,9 @@ class CRUDBase(Generic[ModelT, CreateSchemaT, UpdateSchemaT]):
     def create(self, obj_in: CreateSchemaT, db: Session = None) -> ModelT:
         obj_in_data = jsonable_encoder(obj_in)
         db_obj = self.model(**obj_in_data)
-        (db or get_session()).add(db_obj)
+        (db := db or get_session()).add(db_obj)
+        db.flush((db_obj,))
+        db.refresh(db_obj)
         return db_obj
 
     def update(
@@ -66,32 +75,51 @@ class CRUDBase(Generic[ModelT, CreateSchemaT, UpdateSchemaT]):
         for field in obj_data:
             if field in update_data:
                 setattr(db_obj, field, update_data[field])
-        (db or get_session()).add(db_obj)
+        (db := db or get_session()).add(db_obj)
+        db.flush((db_obj,))
+        db.refresh(db_obj)
         return db_obj
+
+    def delete(self, id: int, db: Session = None) -> bool:
+        db_obj = self.get(id=id, db=(db := db or get_session()))
+        if db_obj is None:
+            return False
+        db.delete(db_obj)
+        return True
 
     def get_or_create(
         self, defaults: dict[str, Any] = None, db: Session = None, **kwargs
     ) -> ModelT:
-        session = db or get_session()
-        db_obj = session.execute(select(self.model).filter_by(**kwargs)).scalar()
+        db_obj = (
+            (db := db or get_session())
+            .execute(select(self.model).filter_by(**kwargs))
+            .scalar()
+        )
         if db_obj is None:
             kwargs |= defaults or {}
             db_obj = self.model(**kwargs)
-            session.add(db_obj)
+            db.add(db_obj)
+            db.flush((db_obj,))
+            db.refresh(db_obj)
         return db_obj
 
     def update_or_create(
         self, defaults: dict[str, Any] = None, db: Session = None, **kwargs
     ) -> ModelT:
-        session = db or get_session()
-        db_obj = session.execute(select(self.model).filter_by(**kwargs)).scalar()
+        db_obj = (
+            (db := db or get_session())
+            .execute(select(self.model).filter_by(**kwargs))
+            .scalar()
+        )
         if db_obj is None:
             kwargs |= defaults or {}
             db_obj = self.model(**kwargs)
+            db.add(db_obj)
+            db.flush((db_obj,))
         else:
             for field in kwargs:
                 setattr(db_obj, field, kwargs[field])
-        session.add(db_obj)
+        db.refresh(db_obj)
         return db_obj
 
 
@@ -107,17 +135,40 @@ class IntervalScheduleRepo(
         db: Session = None,
     ) -> IntervalSchedule:
         every = max(schedule.run_every.total_seconds(), 0)
-        session = get_session(db)
-        model_schedule = session.execute(
-            select(IntervalSchedule).filter_by(every=every, period=period)
-        ).scalar()
+
+        model_schedule = (
+            (db := db or get_session())
+            .execute(select(IntervalSchedule).filter_by(every=every, period=period))
+            .scalar()
+        )
         if model_schedule is None:
             model_schedule = PeriodicTask(every=every, period=period)
-            session.add(model_schedule)
-        # TODO 清除重复的
+            db.add(model_schedule)
+        # TODO delete duplicate items
         # https://sourcegraph.com/github.com/celery/django-celery-beat/-/blob/django_celery_beat/models.py#L185
 
         return model_schedule
+
+
+class CrontabScheduleRepo(
+    CRUDBase[
+        CrontabSchedule, schemas.CrontabScheduleCreate, schemas.CrontabScheduleUpdate
+    ]
+):
+    def from_celery_schedule(
+        self,
+        schedule: TZCrontab,
+        db: Session = None,
+    ) -> CrontabSchedule:
+        spec = {
+            "minute": schedule._orig_minute,
+            "hour": schedule._orig_hour,
+            "day_of_week": schedule._orig_day_of_week,
+            "day_of_month": schedule._orig_day_of_month,
+            "month_of_year": schedule._orig_month_of_year,
+            "timezone": "UTC" if schedule.tz is None else schedule.tz.zone,
+        }
+        return self.get_or_create(db=db, **spec)
 
 
 class PeriodicTaskRepo(
@@ -135,7 +186,9 @@ class PeriodicTaskRepo(
         obj_in_data = jsonable_encoder(obj_in)
         self._json2str(obj_in_data)
         db_obj = self.model(**obj_in_data)
-        (db or get_session()).add(db_obj)
+        (db := db or get_session()).add(db_obj)
+        db.flush((db_obj,))  # get a persistent instance
+        db.refresh(db_obj)  # access relationship
         return db_obj
 
     def update(
@@ -153,7 +206,9 @@ class PeriodicTaskRepo(
         for field in obj_data:
             if field in update_data:
                 setattr(db_obj, field, update_data[field])
-        (db or get_session()).add(db_obj)
+        (db := db or get_session()).add(db_obj)
+        db.flush((db_obj,))
+        db.refresh(db_obj)
         return db_obj
 
     def get_by_name(self, name: str, db: Session = None) -> Optional[ModelT]:
@@ -165,7 +220,7 @@ class PeriodicTaskRepo(
 
     def get_enabled(self, db: Session = None) -> list[PeriodicTask]:
         return (
-            get_session(db)
+            (db or get_session())
             .execute(
                 select(self.model)
                 .filter_by(enabled=True)
@@ -185,14 +240,15 @@ class PeriodicTasksRepo:
 
     def update_or_create(self, db: Session = None) -> PeriodicTasks:
         session = get_session(db)
-        if obj := session.execute(select(self.model)).scalar():
-            obj.last_update = utcnow()
+        if db_obj := session.execute(select(self.model)).scalar():
+            db_obj.last_update = utcnow()
         else:
             obj = self.model(last_update=utcnow())
             session.add(obj)
-        return obj
+        return db_obj
 
 
 interval_schedule_repo = IntervalScheduleRepo(IntervalSchedule)
-periodic_task_repo = PeriodicTaskRepo(PeriodicTask)
+crontab_schedule_repo = CrontabScheduleRepo(CrontabSchedule)
 periodic_tasks_repo = PeriodicTasksRepo(PeriodicTasks)
+periodic_task_repo = PeriodicTaskRepo(PeriodicTask)

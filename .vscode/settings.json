@@ -3,6 +3,8 @@
     "python.linting.mypyEnabled": true,
     "cSpell.words": [
         "AMQP",
+        "cronexp",
+        "crontabs",
         "kombu",
         "onupdate"
     ]

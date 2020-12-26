@@ -2,11 +2,12 @@ from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel, Field, Json, PositiveInt
+
 from src.models import PERIOD_CHOICES
 from src.utils.timezone import utcnow
 
-# TODO 自定义 JsonStr
-# 或者 参考 django-celery-beat 使用 JsonField 后的实现
+# TODO Customize JsonStr
+# Or refer to django-celery-beat's implementation using JsonField
 
 
 class IntervalScheduleBase(BaseModel):
@@ -37,12 +38,46 @@ class IntervalScheduleInDB(IntervalScheduleInDBBase):
     pass
 
 
+class CrontabScheduleBase(BaseModel):
+    minute: str = Field("*", max_length=60 * 4)
+    hour: str = Field("*", max_length=24 * 4)
+    day_of_week: str = Field("*", max_length=64)
+    day_of_month: str = Field("*", max_length=31 * 4)
+    month_of_year: str = Field("*", max_length=64)
+    # TIMEZONE str
+    timezone: str = Field("UTC", max_length=63)
+
+
+class CrontabScheduleCreate(CrontabScheduleBase):
+    pass
+
+
+class CrontabScheduleUpdate(CrontabScheduleBase):
+    pass
+
+
+class CrontabScheduleInDBBase(CrontabScheduleBase):
+    id: int
+
+    class Config:
+        orm_mode = True
+
+
+class CrontabSchedule(CrontabScheduleInDBBase):
+    pass
+
+
+class CrontabScheduleInDB(CrontabScheduleInDBBase):
+    pass
+
+
 class PeriodicTaskBase(BaseModel):
 
     name: str = Field(..., max_length=200)
     task: str = Field(..., max_length=200)
 
-    interval_id: int
+    interval_id: Optional[int] = None
+    crontab_id: Optional[int] = None
 
     args: Json[list] = Field(default_factory=list)
     kwargs: Json[dict] = Field(default_factory=dict)
@@ -71,7 +106,7 @@ class PeriodicTaskUpdate(PeriodicTaskBase):
 
 class PeriodicTaskInDBBase(PeriodicTaskBase):
     id: int
-    last_run_at: datetime = None
+    last_run_at: Optional[datetime] = None
     total_run_count: int = 0
     date_changed: datetime = Field(default_factory=utcnow)
 

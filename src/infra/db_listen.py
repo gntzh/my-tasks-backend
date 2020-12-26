@@ -1,6 +1,7 @@
-from sqlalchemy import select, insert, update
+from sqlalchemy import insert, select, update
 from sqlalchemy.event import listen
-from src.models import IntervalSchedule, PeriodicTask, PeriodicTasks
+
+from src.models import CrontabSchedule, IntervalSchedule, PeriodicTask, PeriodicTasks
 from src.utils.timezone import utcnow
 
 
@@ -26,3 +27,6 @@ listen(PeriodicTask, "after_update", PeriodicTasksChange.changed)
 listen(IntervalSchedule, "after_insert", PeriodicTasksChange.update_changed)
 listen(IntervalSchedule, "after_delete", PeriodicTasksChange.update_changed)
 listen(IntervalSchedule, "after_update", PeriodicTasksChange.update_changed)
+listen(CrontabSchedule, "after_insert", PeriodicTasksChange.update_changed)
+listen(CrontabSchedule, "after_delete", PeriodicTasksChange.update_changed)
+listen(CrontabSchedule, "after_update", PeriodicTasksChange.update_changed)

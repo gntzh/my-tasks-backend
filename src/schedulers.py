@@ -8,17 +8,18 @@ from celery import Celery, current_app, schedules
 from celery.beat import ScheduleEntry, Scheduler
 from celery.utils.log import get_logger
 from celery.utils.time import maybe_make_aware
-from sqlalchemy.orm import sessionmaker
 from kombu.utils.encoding import safe_repr, safe_str
 from kombu.utils.json import dumps, loads
-
+from sqlalchemy.orm import sessionmaker
 from src.infra.repo import (
+    crontab_schedule_repo,
     interval_schedule_repo,
     periodic_task_repo,
     periodic_tasks_repo,
 )
 from src.infra.session import engine
 from src.models import ModelSchedule, PeriodicTask, PeriodicTasks
+from src.tz_crontab import TZCrontab
 
 NEVER_CHECK_TIMEOUT = 100000000
 
@@ -37,14 +38,16 @@ from src.infra import db_listen  # noqa: F401, E402
 logger = get_logger(__name__)
 debug, info, warning = logger.debug, logger.info, logger.warning
 
-SessionLocal = sessionmaker(engine, expire_on_commit=False, future=True)
+SessionLocal = sessionmaker(
+    engine, autoflush=False, autocommit=False, expire_on_commit=False, future=True
+)
 
 
 class ModelEntry(ScheduleEntry):
 
     model_schedules = (
         # schedule_type, repo, model_field
-        # (schedules.crontab, CrontabSchedule, 'crontab_id'),
+        (schedules.crontab, crontab_schedule_repo, "crontab_id"),
         (schedules.schedule, interval_schedule_repo, "interval_id"),
         # (schedules.solar, SolarSchedule, 'solar_id'),
         # (clocked, ClockedSchedule, 'clocked_id')
@@ -89,9 +92,10 @@ class ModelEntry(ScheduleEntry):
         self.last_run_at = model_task.last_run_at
 
     def _disable(self, model_task: PeriodicTask) -> None:
+        # task filed error, don't trigger the change
         with SessionLocal().begin() as session:
             session.add(model_task)
-            model_task.disable_task()
+            model_task.disable_error_task()
 
     def is_due(self) -> schedules.schedstate:
         # 供 scheduler.is_due(entry) 调用
@@ -149,17 +153,16 @@ class ModelEntry(ScheduleEntry):
             schedule = schedules.maybe_schedule(schedule)
             if isinstance(schedule, schedule_type):
                 with SessionLocal.begin() as session:
-                    model_schedule = repo.from_schedule(schedule, db=session)
+                    model_schedule = repo.from_celery_schedule(schedule, db=session)
                 return model_schedule, model_field
         raise ValueError("Cannot convert schedule type {0!r} to model".format(schedule))
 
     @classmethod
-    def from_entry(cls, name: str, app: Celery = None, **entry) -> "ModelEntry":
-        # TODO entry ?
-        # XXX session 频繁连接
+    def from_entry(cls, name: str, app: Celery = None, **entry_fields) -> "ModelEntry":
+        # XXX Sessions connect too frequently
         with SessionLocal.begin() as session:
             model_task = periodic_task_repo.update_or_create(
-                name=name, defaults=cls._unpack_fields(**entry), db=session
+                name=name, defaults=cls._unpack_fields(**entry_fields), db=session
             )
             return cls(model_task, app=app)
 
@@ -171,16 +174,16 @@ class ModelEntry(ScheduleEntry):
         kwargs: dict = None,
         relative: bool = None,
         options: dict = None,
-        **entry
-    ):
+        **entry_fields
+    ) -> dict[str, Any]:
         model_schedule, model_field = cls.to_model_schedule(schedule)
-        entry.update(
-            {model_field: model_schedule},
+        entry_fields.update(
+            {model_field: model_schedule.id},
             args=dumps(args or []),
             kwargs=dumps(kwargs or {}),
             **cls._unpack_options(**options or {})
         )
-        return entry
+        return entry_fields
 
     @classmethod
     def _unpack_options(
@@ -213,6 +216,7 @@ class ModelEntry(ScheduleEntry):
 
 
 EntryT = TypeVar("EntryT", bound=ModelEntry)
+ScheduleData = dict[str, EntryT]
 
 
 class DatabaseScheduler(Scheduler, Generic[EntryT]):
@@ -221,7 +225,7 @@ class DatabaseScheduler(Scheduler, Generic[EntryT]):
     Model: Type[PeriodicTask] = PeriodicTask
     Changes: Type[PeriodicTasks] = PeriodicTasks
 
-    _schedule: Optional[dict[str, EntryT]] = None
+    _schedule: Optional[ScheduleData] = None
     _last_timestamp: Optional[datetime] = None
     _initial_read: bool = True
     _heap_invalidated: bool = False
@@ -242,7 +246,7 @@ class DatabaseScheduler(Scheduler, Generic[EntryT]):
         self.install_default_entries(self.schedule)
         self.update_from_dict(self.app.conf.beat_schedule)
 
-    def all_as_schedule(self) -> dict[str, EntryT]:
+    def all_as_schedule(self) -> ScheduleData:
         debug("DatabaseScheduler: Fetching database schedule")
         s = {}
         with SessionLocal.begin() as session:
@@ -278,7 +282,7 @@ class DatabaseScheduler(Scheduler, Generic[EntryT]):
             debug("Writing entries...")
         _tried = set()
         _failed = set()
-        # TODO 完善异常处理
+        # TODO Improve exception handling. Refer to:
         # https://sourcegraph.com/github.com/celery/django-celery-beat/-/blob/django_celery_beat/schedulers.py#L295
         try:
             while self._dirty:
@@ -303,19 +307,18 @@ class DatabaseScheduler(Scheduler, Generic[EntryT]):
                 logger.exception(ADD_ENTRY_ERROR, name, exc, entry_fields)
         self.schedule.update(s)
 
-    def install_default_entries(self, data: dict) -> None:
-        # data: schedule
+    def install_default_entries(self, data: ScheduleData) -> None:
+        # "data" is not accessed, maybe for compatibility
         entries: dict = {}
-        # TODO CrontabSchedule
-        # if self.app.conf.result_expires:
-        #     entries.setdefault(
-        #         "celery.backend_cleanup",
-        #         {
-        #             "task": "celery.backend_cleanup",
-        #             "schedule": schedules.crontab("0", "4", "*"),
-        #             "options": {"expire_seconds": 12 * 3600},
-        #         },
-        #     )
+        if self.app.conf.result_expires:
+            entries.setdefault(
+                "celery.backend_cleanup",
+                {
+                    "task": "celery.backend_cleanup",
+                    "schedule": TZCrontab("0", "4", "*"),
+                    "options": {"expire_seconds": 12 * 3600},
+                },
+            )
         self.update_from_dict(entries)
 
     def schedules_equal(self, *args, **kwargs) -> bool:
@@ -325,7 +328,7 @@ class DatabaseScheduler(Scheduler, Generic[EntryT]):
         return super(DatabaseScheduler, self).schedules_equal(*args, **kwargs)
 
     @property
-    def schedule(self) -> dict[str, EntryT]:
+    def schedule(self) -> ScheduleData:
         initial = update = False
         if self._initial_read:
             debug("DatabaseScheduler: initial read")

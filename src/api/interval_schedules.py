@@ -29,15 +29,22 @@ def create_interval_schedule(article_data: schemas.IntervalScheduleCreate) -> An
 @router.get("/{id}", response_model=schemas.IntervalSchedule)
 def get_interval_schedule(id: int) -> Any:
     with get_session().begin():
-        if not (task := interval_schedule_repo.get(id)):
+        if not (interval := interval_schedule_repo.get(id)):
             raise HTTPException(status_code=404, detail="Item not found")
-        return task
+        return interval
 
 
 @router.put("/{id}", response_model=schemas.IntervalSchedule)
 def update_interval_schedule(id: int, data: schemas.IntervalScheduleUpdate) -> Any:
     with get_session().begin():
-        if not (task := interval_schedule_repo.get(id)):
+        if not (interval := interval_schedule_repo.get(id)):
             raise HTTPException(status_code=404, detail="Item not found")
-        interval_schedule_repo.update(task, data)
-        return task
+        interval_schedule_repo.update(interval, data)
+        return interval
+
+
+@router.delete("/{id}")
+def delete_interval_schedule(id: int) -> Any:
+    with get_session().begin():
+        if not interval_schedule_repo.delete(id=id):
+            raise HTTPException(status_code=404, detail="Item not found")

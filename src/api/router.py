@@ -1,7 +1,11 @@
 from datetime import datetime
 from typing import Optional
+
 from fastapi import APIRouter
+
 from src.infra.repo import periodic_tasks_repo
+
+from .crontab_schedules import router as crontab_scheduler_router
 from .interval_schedules import router as interval_schedules_router
 from .periodic_tasks import router as periodic_task_router
 
@@ -10,7 +14,13 @@ router = APIRouter()
 router.include_router(
     interval_schedules_router,
     prefix="/interval_schedules",
-    tags=["Interval"],
+    tags=["Interval Schedules"],
+)
+
+router.include_router(
+    crontab_scheduler_router,
+    prefix="/crontab_schedules",
+    tags=["Crontab Schedules"],
 )
 
 router.include_router(

@@ -3,7 +3,7 @@ from typing import Optional
 
 from fastapi import Request
 from sqlalchemy import create_engine
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 from starlette.middleware.base import (
     BaseHTTPMiddleware,
     RequestResponseEndpoint,
@@ -14,7 +14,6 @@ from src.config import settings
 
 __all__ = (
     "engine",
-    "create_session",
     "get_session",
     "DBSessionMiddleware",
     "SessionHolder",
@@ -24,9 +23,7 @@ engine = create_engine(settings.SQLALCHEMY_DATABASE_URI, future=True)
 
 session_holder_var: ContextVar["SessionHolder"] = ContextVar("session_holder")
 
-
-def create_session() -> Session:
-    return Session(engine, future=True)
+SessionLocal = sessionmaker(engine, autoflush=False, autocommit=False, future=True)
 
 
 def get_session(session: Session = None) -> Session:
@@ -43,7 +40,7 @@ class SessionHolder:
     @property
     def session(self) -> Session:
         if self._session is None:
-            self._session = create_session()
+            self._session = SessionLocal()
         return self._session
 
     def cleanup(self) -> None:
