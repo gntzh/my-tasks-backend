@@ -11,6 +11,7 @@ from celery.utils.time import maybe_make_aware
 from kombu.utils.encoding import safe_repr, safe_str
 from kombu.utils.json import dumps, loads
 from sqlalchemy.orm import sessionmaker
+
 from src.infra.repo import (
     crontab_schedule_repo,
     interval_schedule_repo,
@@ -158,7 +159,9 @@ class ModelEntry(ScheduleEntry):
         raise ValueError("Cannot convert schedule type {0!r} to model".format(schedule))
 
     @classmethod
-    def from_entry(cls, name: str, app: Celery = None, **entry_fields) -> "ModelEntry":
+    def from_entry(
+        cls, name: str, app: Celery = None, **entry_fields: dict[str, Any]
+    ) -> "ModelEntry":
         # XXX Sessions connect too frequently
         with SessionLocal.begin() as session:
             model_task = periodic_task_repo.update_or_create(
@@ -174,7 +177,7 @@ class ModelEntry(ScheduleEntry):
         kwargs: dict = None,
         relative: bool = None,
         options: dict = None,
-        **entry_fields
+        **entry_fields: dict[str, Any]
     ) -> dict[str, Any]:
         model_schedule, model_field = cls.to_model_schedule(schedule)
         entry_fields.update(
@@ -194,7 +197,7 @@ class ModelEntry(ScheduleEntry):
         priority: int = None,
         headers: dict = None,
         expire_seconds: int = None,
-        **kwargs
+        **kwargs: dict[str, Any]
     ) -> dict[str, Any]:
         return {
             "queue": queue,
@@ -232,7 +235,7 @@ class DatabaseScheduler(Scheduler, Generic[EntryT]):
 
     _heap: list
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: list[Any], **kwargs: dict[str, Any]) -> None:
         self._dirty: set = set()
         super().__init__(*args, **kwargs)
         self._finalize = Finalize(self, self.sync, exitpriority=5)
@@ -321,7 +324,7 @@ class DatabaseScheduler(Scheduler, Generic[EntryT]):
             )
         self.update_from_dict(entries)
 
-    def schedules_equal(self, *args, **kwargs) -> bool:
+    def schedules_equal(self, *args: list[str], **kwargs: dict[str, Any]) -> bool:
         if self._heap_invalidated:
             self._heap_invalidated = False
             return False

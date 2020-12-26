@@ -4,7 +4,7 @@ import src.infra.db_listen  # noqa: F401
 from src.api.router import router
 from src.infra.session import DBSessionMiddleware
 
-app = FastAPI()
+app = FastAPI(title="My Tasks")
 
 app.add_middleware(DBSessionMiddleware)
 

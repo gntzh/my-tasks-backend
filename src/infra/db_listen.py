@@ -1,20 +1,39 @@
+from typing import TYPE_CHECKING, Union
+
 from sqlalchemy import insert, select, update
 from sqlalchemy.event import listen
 
-from src.models import CrontabSchedule, IntervalSchedule, PeriodicTask, PeriodicTasks
+from src.models import (
+    CrontabSchedule,
+    IntervalSchedule,
+    ModelSchedule,
+    PeriodicTask,
+    PeriodicTasks,
+)
 from src.utils.timezone import utcnow
+
+if TYPE_CHECKING:
+    from sqlalchemy.engine import Connection
+    from sqlalchemy.orm import Mapper
 
 
 class PeriodicTasksChange:
     # Periodic tasks change
     @classmethod
-    def changed(cls, mapper, connection, target) -> None:
+    def changed(
+        cls, mapper: "Mapper", connection: "Connection", target: PeriodicTask
+    ) -> None:
         if not target.no_changes:
             cls.update_changed(mapper, connection, target)
 
     # Schedule and Periodic tasks tasks change
     @classmethod
-    def update_changed(cls, mapper, connection, target) -> None:
+    def update_changed(
+        cls,
+        mapper: "Mapper",
+        connection: "Connection",
+        target: Union[ModelSchedule, PeriodicTask],
+    ) -> None:
         if connection.execute(select(PeriodicTasks)).scalar() is None:
             connection.execute(insert(PeriodicTasks).values(last_update=utcnow()))
         else:
