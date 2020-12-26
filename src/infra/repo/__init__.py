@@ -19,6 +19,8 @@ from src.models import (
 from src.tz_crontab import TZCrontab
 from src.utils.timezone import utcnow
 
+# XXX For some partial updates, need to validate here.
+
 
 class ModelBase(Protocol):
     id: Any

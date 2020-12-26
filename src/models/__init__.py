@@ -10,6 +10,7 @@ from sqlalchemy.sql.sqltypes import Interval
 
 from src.lib.sa.timezone import TZDateTime
 from src.tz_crontab import TZCrontab
+from src.utils.crontab_validators import validate_crontab
 from src.utils.timezone import utcnow
 
 from .mapper import Base
@@ -53,12 +54,12 @@ class CrontabSchedule(Base):
     minute = Column(String(60 * 4), default="*")
     # hour ≤ 24*4
     hour = Column(String(24 * 4), default="*")
-    # day_of_week ≤ 64
-    day_of_week = Column(String(64), default="*")
     # day_of_month ≤ 31*4
     day_of_month = Column(String(31 * 4), default="*")
     # month_of_year ≤ 64
     month_of_year = Column(String(64), default="*")
+    # day_of_week ≤ 64
+    day_of_week = Column(String(64), default="*")
     # TIMEZONE str
     timezone = Column(String(63), default="UTC")
 
@@ -83,6 +84,21 @@ class CrontabSchedule(Base):
             month_of_year=self.month_of_year,
             tz=pytz.timezone(self.timezone),
         )
+
+    @property
+    def crontab_expr(self) -> str:
+        return " ".join(
+            (
+                cronexp(self.minute),
+                cronexp(self.hour),
+                cronexp(self.day_of_month),
+                cronexp(self.month_of_year),
+                cronexp(self.day_of_week),
+            )
+        )
+
+    def validate(self) -> None:
+        validate_crontab(self.crontab_expr)
 
 
 class PeriodicTasks(Base):
@@ -146,15 +162,17 @@ class PeriodicTask(Base):
 
     no_changes = False
 
-    def __repr__(self) -> str:
-        fmt = "{0.name}: {{no schedule}}"
-        if self.interval:
-            fmt = "{0.name}: {0.interval}"
-        elif self.crontab:
-            fmt = "{0.name}: {0.crontab}"
-        # elif self.solar:
-        #     fmt = "{0.name}: {0.solar}"
-        return fmt.format(self)
+    def validate(self) -> None:
+        num = 0
+        for field in ("interval_id", "crontab_id", "solar_id", "clocked_id"):
+            if getattr(self, field) is not None:
+                num += 1
+        if num != 0:
+            raise ValueError(
+                "Only one of clocked, interval, crontab, or solar must be set"
+            )
+        if getattr(self, "clocked_id") is not None and not self.one_off:
+            raise ValueError("Clocked task must be one off, one_off must set True")
 
     # TODO FIXME datetime or int(seconds)?
     @property
@@ -182,6 +200,16 @@ class PeriodicTask(Base):
     def disable_error_task(self) -> None:
         self.no_changes = True
         self.enabled = False
+
+    def __repr__(self) -> str:
+        fmt = "{0.name}: {{no schedule}}"
+        if self.interval:
+            fmt = "{0.name}: {0.interval}"
+        elif self.crontab:
+            fmt = "{0.name}: {0.crontab}"
+        # elif self.solar:
+        #     fmt = "{0.name}: {0.solar}"
+        return fmt.format(self)
 
 
 ModelSchedule = Union[Interval, CrontabSchedule]

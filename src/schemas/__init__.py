@@ -1,9 +1,10 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field, Json, PositiveInt
+from pydantic import BaseModel, Field, Json, PositiveInt, root_validator, validator
 
 from src.models import PERIOD_CHOICES
+from src.utils.crontab_validators import validate_crontab
 from src.utils.timezone import utcnow
 
 # TODO Customize JsonStr
@@ -41,11 +42,36 @@ class IntervalScheduleInDB(IntervalScheduleInDBBase):
 class CrontabScheduleBase(BaseModel):
     minute: str = Field("*", max_length=60 * 4)
     hour: str = Field("*", max_length=24 * 4)
-    day_of_week: str = Field("*", max_length=64)
     day_of_month: str = Field("*", max_length=31 * 4)
     month_of_year: str = Field("*", max_length=64)
+    day_of_week: str = Field("*", max_length=64)
     # TIMEZONE str
     timezone: str = Field("UTC", max_length=63)
+
+    @validator("minute")
+    def check_minute(cls, v: str) -> str:
+        validate_crontab(v, 0)
+        return v
+
+    @validator("hour")
+    def check_hour(cls, v: str) -> str:
+        validate_crontab(v, 1)
+        return v
+
+    @validator("day_of_month")
+    def check_day_of_month(cls, v: str) -> str:
+        validate_crontab(v, 2)
+        return v
+
+    @validator("month_of_year")
+    def check_month_of_year(cls, v: str) -> str:
+        validate_crontab(v, 3)
+        return v
+
+    @validator("day_of_week")
+    def check_day_of_week(cls, v: str) -> str:
+        validate_crontab(v, 4)
+        return v
 
 
 class CrontabScheduleCreate(CrontabScheduleBase):
@@ -94,6 +120,21 @@ class PeriodicTaskBase(BaseModel):
     start_time: Optional[datetime] = None
     enabled: Optional[bool] = True
     description: str = ""
+
+    @root_validator
+    def check_unique_schedule(cls, values: dict) -> dict:
+        # values contains the default values
+        num = 0
+        for field in ("interval_id", "crontab_id", "solar_id", "clocked_id"):
+            if values.get(field) is not None:
+                num += 1
+        if num != 1:
+            raise ValueError(
+                "Only one of clocked, interval, crontab, or solar must be set"
+            )
+        if values.get("clocked_id") is not None and not values["one_off"]:
+            raise ValueError("Clocked task must be one off, one_off must set True")
+        return values
 
 
 class PeriodicTaskCreate(PeriodicTaskBase):
