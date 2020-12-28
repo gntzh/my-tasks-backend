@@ -4,7 +4,7 @@ from datetime import datetime
 from multiprocessing.util import Finalize
 from typing import Any, Generic, Optional, Type, TypeVar
 
-from celery import Celery, current_app, schedules
+from celery import Celery, current_app
 from celery.beat import ScheduleEntry, Scheduler
 from celery.utils.log import get_logger
 from celery.utils.time import maybe_make_aware
@@ -12,16 +12,17 @@ from kombu.utils.encoding import safe_repr, safe_str
 from kombu.utils.json import dumps, loads
 from sqlalchemy.orm import sessionmaker
 
+from src import schedules
 from src.infra.repo import (
     clocked_schedule_repo,
     crontab_schedule_repo,
     interval_schedule_repo,
     periodic_task_repo,
     periodic_tasks_repo,
+    solar_schedule_repo,
 )
 from src.infra.session import engine
 from src.models import ModelSchedule, PeriodicTask, PeriodicTasks
-from src.schedules import tz_crontab, clocked
 from src.utils import NEVER_CHECK_TIMEOUT
 
 # This scheduler must wake up more frequently than the
@@ -50,8 +51,8 @@ class ModelEntry(ScheduleEntry):
         # schedule_type, repo, model_field
         (schedules.crontab, crontab_schedule_repo, "crontab_id"),
         (schedules.schedule, interval_schedule_repo, "interval_id"),
-        # (schedules.solar, solar_schedule_repo, 'solar_id'),
-        (clocked, clocked_schedule_repo, "clocked_id"),
+        (schedules.solar, solar_schedule_repo, "solar_id"),
+        (schedules.clocked, clocked_schedule_repo, "clocked_id"),
     )
     save_fields = ["last_run_at", "total_run_count", "no_changes"]
 
@@ -319,7 +320,7 @@ class DatabaseScheduler(Scheduler, Generic[EntryT]):
                 "celery.backend_cleanup",
                 {
                     "task": "celery.backend_cleanup",
-                    "schedule": tz_crontab("0", "4", "*"),
+                    "schedule": schedules.tz_crontab("0", "4", "*"),
                     "options": {"expire_seconds": 12 * 3600},
                 },
             )

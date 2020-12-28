@@ -1,7 +1,6 @@
 import json
 from typing import Any, Generic, Optional, Protocol, Type, TypeVar, Union
 
-from celery import schedules
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -12,12 +11,13 @@ from src.infra.session import get_session
 from src.models import (
     PERIOD_CHOICES,
     ClockedSchedule,
+    SolarSchedule,
     CrontabSchedule,
     IntervalSchedule,
     PeriodicTask,
     PeriodicTasks,
 )
-from src.schedules import tz_crontab, clocked
+from src import schedules
 from src.utils.timezone import utcnow
 
 # XXX For some partial updates, need to validate here.
@@ -162,10 +162,30 @@ class ClockedScheduleRepo(
 ):
     def from_celery_schedule(
         self,
-        schedule: clocked,
+        schedule: schedules.clocked,
         db: Session = None,
     ) -> ClockedSchedule:
         spec = {"clocked_time": schedule.clocked_time}
+        return self.get_or_create(db=db, **spec)
+
+
+class SolarScheduleRepo(
+    CRUDBase[
+        SolarSchedule,
+        schemas.SolarScheduleCreate,
+        schemas.SolarScheduleUpdate,
+    ]
+):
+    def from_celery_schedule(
+        self,
+        schedule: schedules.solar,
+        db: Session = None,
+    ) -> SolarSchedule:
+        spec = {
+            "event": schedule.event,
+            "latitude": schedule.lat,
+            "longitude": schedule.lon,
+        }
         return self.get_or_create(db=db, **spec)
 
 
@@ -176,7 +196,7 @@ class CrontabScheduleRepo(
 ):
     def from_celery_schedule(
         self,
-        schedule: tz_crontab,
+        schedule: schedules.tz_crontab,
         db: Session = None,
     ) -> CrontabSchedule:
         spec = {
@@ -270,5 +290,6 @@ class PeriodicTasksRepo:
 interval_schedule_repo = IntervalScheduleRepo(IntervalSchedule)
 crontab_schedule_repo = CrontabScheduleRepo(CrontabSchedule)
 clocked_schedule_repo = ClockedScheduleRepo(ClockedSchedule)
+solar_schedule_repo = SolarScheduleRepo(SolarSchedule)
 periodic_tasks_repo = PeriodicTasksRepo(PeriodicTasks)
 periodic_task_repo = PeriodicTaskRepo(PeriodicTask)

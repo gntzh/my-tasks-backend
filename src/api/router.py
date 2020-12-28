@@ -6,6 +6,7 @@ from fastapi import APIRouter
 from src.infra.repo import periodic_tasks_repo
 
 from .clocked_schedules import router as clocked_schedules_router
+from .solar_schedules import router as solar_schedules_router
 from .crontab_schedules import router as crontab_scheduler_router
 from .interval_schedules import router as interval_schedules_router
 from .periodic_tasks import router as periodic_task_router
@@ -28,6 +29,12 @@ router.include_router(
     clocked_schedules_router,
     prefix="/clocked_schedules",
     tags=["Clocked Schedules"],
+)
+
+router.include_router(
+    solar_schedules_router,
+    prefix="/solar_schedules",
+    tags=["Solar Schedules"],
 )
 
 

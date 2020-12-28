@@ -4,7 +4,14 @@ from typing import Any, Callable, Optional
 
 import pytz
 from celery import Celery
-from celery.schedules import BaseSchedule, crontab, schedstate
+from celery.schedules import (  # noqa: F401
+    BaseSchedule,
+    crontab,
+    schedstate,
+    schedule,
+    solar,
+    maybe_schedule,
+)
 from celery.utils.time import maybe_make_aware
 
 from .utils import NEVER_CHECK_TIMEOUT

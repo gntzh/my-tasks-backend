@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional
-
+from decimal import Decimal
 from pydantic import BaseModel, Field, Json, PositiveInt, root_validator, validator
 
 from src.models import PERIOD_CHOICES
@@ -36,33 +36,6 @@ class IntervalSchedule(IntervalScheduleInDBBase):
 
 
 class IntervalScheduleInDB(IntervalScheduleInDBBase):
-    pass
-
-
-class ClockedScheduleBase(BaseModel):
-    clocked_time: datetime
-
-
-class ClockedScheduleCreate(ClockedScheduleBase):
-    pass
-
-
-class ClockedScheduleUpdate(ClockedScheduleBase):
-    pass
-
-
-class ClockedScheduleInDBBase(ClockedScheduleBase):
-    id: int
-
-    class Config:
-        orm_mode = True
-
-
-class ClockedSchedule(ClockedScheduleInDBBase):
-    pass
-
-
-class ClockedScheduleInDB(ClockedScheduleInDBBase):
     pass
 
 
@@ -124,6 +97,62 @@ class CrontabScheduleInDB(CrontabScheduleInDBBase):
     pass
 
 
+class ClockedScheduleBase(BaseModel):
+    clocked_time: datetime
+
+
+class ClockedScheduleCreate(ClockedScheduleBase):
+    pass
+
+
+class ClockedScheduleUpdate(ClockedScheduleBase):
+    pass
+
+
+class ClockedScheduleInDBBase(ClockedScheduleBase):
+    id: int
+
+    class Config:
+        orm_mode = True
+
+
+class ClockedSchedule(ClockedScheduleInDBBase):
+    pass
+
+
+class ClockedScheduleInDB(ClockedScheduleInDBBase):
+    pass
+
+
+class SolarScheduleBase(BaseModel):
+    event: str = Field(..., max_length=24)
+    latitude: Decimal = Field(..., ge=-90, le=90)
+    longitude: Decimal = Field(..., ge=-180, le=180)
+
+
+class SolarScheduleCreate(SolarScheduleBase):
+    pass
+
+
+class SolarScheduleUpdate(SolarScheduleBase):
+    pass
+
+
+class SolarScheduleInDBBase(SolarScheduleBase):
+    id: int
+
+    class Config:
+        orm_mode = True
+
+
+class SolarSchedule(SolarScheduleInDBBase):
+    pass
+
+
+class SolarScheduleInDB(SolarScheduleInDBBase):
+    pass
+
+
 class PeriodicTaskBase(BaseModel):
 
     name: str = Field(..., max_length=200)
@@ -132,6 +161,7 @@ class PeriodicTaskBase(BaseModel):
     interval_id: Optional[int] = None
     crontab_id: Optional[int] = None
     clocked_id: Optional[int] = None
+    solar_id: Optional[int] = None
 
     args: Json[list] = Field(default_factory=list)  # type: ignore
     kwargs: Json[dict] = Field(default_factory=dict)  # type: ignore
@@ -140,13 +170,13 @@ class PeriodicTaskBase(BaseModel):
 
     exchange: Optional[str] = Field(None, max_length=200)
     routing_key: Optional[str] = Field(None, max_length=200)
-    headers: Optional[str] = None
+    headers: Json[dict] = Field(default_factory=dict)  # type: ignore
     priority: Optional[int] = Field(None, ge=0, le=255)
     expires: Optional[datetime] = None
     expire_seconds: Optional[PositiveInt] = None
     one_off: bool = False
     start_time: Optional[datetime] = None
-    enabled: Optional[bool] = True
+    enabled: bool = True
     description: str = ""
 
     @root_validator
