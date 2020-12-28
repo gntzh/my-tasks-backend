@@ -10,7 +10,7 @@ from celery.utils.time import maybe_make_aware
 from .utils import NEVER_CHECK_TIMEOUT
 
 
-class TZCrontab(crontab):
+class tz_crontab(crontab):
     """Timezone Aware Crontab."""
 
     def __init__(
@@ -28,7 +28,7 @@ class TZCrontab(crontab):
 
         nowfun = self.nowfunc
 
-        super(TZCrontab, self).__init__(
+        super(tz_crontab, self).__init__(
             minute=minute,
             hour=hour,
             day_of_week=day_of_week,

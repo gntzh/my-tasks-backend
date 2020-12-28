@@ -9,7 +9,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql.sqltypes import Interval
 
 from src.lib.sa.timezone import TZDateTime
-from src.tz_crontab import TZCrontab, clocked
+from src.schedules import tz_crontab, clocked
 from src.utils.timezone import utcnow
 
 from .mapper import Base
@@ -73,9 +73,9 @@ class CrontabSchedule(Base):
         )
 
     @property
-    def schedule(self) -> TZCrontab:
+    def schedule(self) -> tz_crontab:
         # enable tz aware
-        return TZCrontab(
+        return tz_crontab(
             minute=self.minute,
             hour=self.hour,
             day_of_week=self.day_of_week,

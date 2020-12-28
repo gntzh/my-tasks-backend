@@ -17,7 +17,7 @@ from src.models import (
     PeriodicTask,
     PeriodicTasks,
 )
-from src.tz_crontab import TZCrontab, clocked
+from src.schedules import tz_crontab, clocked
 from src.utils.timezone import utcnow
 
 # XXX For some partial updates, need to validate here.
@@ -176,7 +176,7 @@ class CrontabScheduleRepo(
 ):
     def from_celery_schedule(
         self,
-        schedule: TZCrontab,
+        schedule: tz_crontab,
         db: Session = None,
     ) -> CrontabSchedule:
         spec = {

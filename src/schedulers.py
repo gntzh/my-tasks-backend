@@ -21,7 +21,7 @@ from src.infra.repo import (
 )
 from src.infra.session import engine
 from src.models import ModelSchedule, PeriodicTask, PeriodicTasks
-from src.tz_crontab import TZCrontab, clocked
+from src.schedules import tz_crontab, clocked
 from src.utils import NEVER_CHECK_TIMEOUT
 
 # This scheduler must wake up more frequently than the
@@ -319,7 +319,7 @@ class DatabaseScheduler(Scheduler, Generic[EntryT]):
                 "celery.backend_cleanup",
                 {
                     "task": "celery.backend_cleanup",
-                    "schedule": TZCrontab("0", "4", "*"),
+                    "schedule": tz_crontab("0", "4", "*"),
                     "options": {"expire_seconds": 12 * 3600},
                 },
             )
