@@ -1,13 +1,13 @@
 """Timezone aware Cron schedule Implementation."""
-from datetime import datetime
-from typing import Any
+from datetime import datetime, timedelta
+from typing import Any, Callable, Optional
 
 import pytz
-from celery.app.base import Celery
-from celery.schedules import crontab, schedstate
+from celery import Celery
+from celery.schedules import BaseSchedule, crontab, schedstate
+from celery.utils.time import maybe_make_aware
 
-# TODO: python 3.9 zoneinfo
-# XXX 统一使用 UTC
+from .utils import NEVER_CHECK_TIMEOUT
 
 
 class TZCrontab(crontab):
@@ -93,3 +93,44 @@ class TZCrontab(crontab):
                 and other.tz == self.tz
             )
         return NotImplemented
+
+
+class clocked(BaseSchedule):
+    """clocked schedule.
+
+    Depends on PeriodicTask one_off=True
+    """
+
+    def __init__(
+        self,
+        clocked_time: datetime,
+        nowfun: Callable[[], datetime] = None,
+        app: Celery = None,
+    ) -> None:
+        """Initialize clocked."""
+        self.clocked_time = maybe_make_aware(clocked_time)
+        super(clocked, self).__init__(nowfun=nowfun, app=app)
+
+    def remaining_estimate(self, last_run_at: Optional[datetime]) -> timedelta:
+        return self.clocked_time - self.now()
+
+    def is_due(self, last_run_at: datetime) -> schedstate:
+        rem_delta = self.remaining_estimate(None)
+        remaining_s = max(rem_delta.total_seconds(), 0)
+        if remaining_s == 0:
+            return schedstate(is_due=True, next=NEVER_CHECK_TIMEOUT)
+        return schedstate(is_due=False, next=remaining_s)
+
+    def __repr__(self) -> str:
+        return f"<clocked: {self.clocked_time}>"
+
+    def __eq__(self, other: Any) -> bool:
+        if isinstance(other, clocked):
+            return self.clocked_time == other.clocked_time
+        return False
+
+    def __ne__(self, other: Any) -> bool:
+        return not self.__eq__(other)
+
+    def __reduce__(self) -> tuple:
+        return self.__class__, (self.clocked_time, self.nowfun)

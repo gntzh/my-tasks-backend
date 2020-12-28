@@ -39,6 +39,33 @@ class IntervalScheduleInDB(IntervalScheduleInDBBase):
     pass
 
 
+class ClockedScheduleBase(BaseModel):
+    clocked_time: datetime
+
+
+class ClockedScheduleCreate(ClockedScheduleBase):
+    pass
+
+
+class ClockedScheduleUpdate(ClockedScheduleBase):
+    pass
+
+
+class ClockedScheduleInDBBase(ClockedScheduleBase):
+    id: int
+
+    class Config:
+        orm_mode = True
+
+
+class ClockedSchedule(ClockedScheduleInDBBase):
+    pass
+
+
+class ClockedScheduleInDB(ClockedScheduleInDBBase):
+    pass
+
+
 class CrontabScheduleBase(BaseModel):
     minute: str = Field("*", max_length=60 * 4)
     hour: str = Field("*", max_length=24 * 4)
@@ -104,9 +131,10 @@ class PeriodicTaskBase(BaseModel):
 
     interval_id: Optional[int] = None
     crontab_id: Optional[int] = None
+    clocked_id: Optional[int] = None
 
-    args: Json[list] = Field(default_factory=list)
-    kwargs: Json[dict] = Field(default_factory=dict)
+    args: Json[list] = Field(default_factory=list)  # type: ignore
+    kwargs: Json[dict] = Field(default_factory=dict)  # type: ignore
 
     queue: Optional[str] = Field(None, max_length=200)
 

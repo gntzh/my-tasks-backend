@@ -13,6 +13,7 @@ from kombu.utils.json import dumps, loads
 from sqlalchemy.orm import sessionmaker
 
 from src.infra.repo import (
+    clocked_schedule_repo,
     crontab_schedule_repo,
     interval_schedule_repo,
     periodic_task_repo,
@@ -20,9 +21,8 @@ from src.infra.repo import (
 )
 from src.infra.session import engine
 from src.models import ModelSchedule, PeriodicTask, PeriodicTasks
-from src.tz_crontab import TZCrontab
-
-NEVER_CHECK_TIMEOUT = 100000000
+from src.tz_crontab import TZCrontab, clocked
+from src.utils import NEVER_CHECK_TIMEOUT
 
 # This scheduler must wake up more frequently than the
 # regular of 5 minutes because it needs to take external
@@ -50,8 +50,8 @@ class ModelEntry(ScheduleEntry):
         # schedule_type, repo, model_field
         (schedules.crontab, crontab_schedule_repo, "crontab_id"),
         (schedules.schedule, interval_schedule_repo, "interval_id"),
-        # (schedules.solar, SolarSchedule, 'solar_id'),
-        # (clocked, ClockedSchedule, 'clocked_id')
+        # (schedules.solar, solar_schedule_repo, 'solar_id'),
+        (clocked, clocked_schedule_repo, "clocked_id"),
     )
     save_fields = ["last_run_at", "total_run_count", "no_changes"]
 
@@ -117,10 +117,9 @@ class ModelEntry(ScheduleEntry):
         # ONE OFF TASK: Disable one off tasks after they've ran once
         if self.model.one_off and self.model.enabled and self.model.total_run_count > 0:
             with SessionLocal.begin() as session:
+                # No reset total_run_count, unlike django-celery-count
+                self.model.disable()
                 session.add(self.model)
-                self.model.enabled = False
-                self.model.total_run_count = 0  # Reset
-                self.model.no_changes = False  # Mark the model entry as changed
             # Don't recheck
             return schedules.schedstate(False, NEVER_CHECK_TIMEOUT)
 
@@ -142,6 +141,8 @@ class ModelEntry(ScheduleEntry):
         # Object may not be synchronized, so only
         # change the fields we care about.
         with SessionLocal.begin() as session:
+            # TODO self.sync_fields
+            # FIXME ModelEntry.save
             for field in self.save_fields:
                 setattr(self.model, field, getattr(self.model, field))
             session.add(self.model)

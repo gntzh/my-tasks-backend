@@ -1,5 +1,7 @@
 import re
 
+NEVER_CHECK_TIMEOUT = 100_000_000
+
 
 def camel_to_snake(string: str) -> str:
     string = re.sub(r"(.)([A-Z][a-z]+)", r"\1_\2", string)

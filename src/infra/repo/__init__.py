@@ -11,12 +11,13 @@ from src import schemas
 from src.infra.session import get_session
 from src.models import (
     PERIOD_CHOICES,
+    ClockedSchedule,
     CrontabSchedule,
     IntervalSchedule,
     PeriodicTask,
     PeriodicTasks,
 )
-from src.tz_crontab import TZCrontab
+from src.tz_crontab import TZCrontab, clocked
 from src.utils.timezone import utcnow
 
 # XXX For some partial updates, need to validate here.
@@ -56,7 +57,7 @@ class CRUDBase(Generic[ModelT, CreateSchemaT, UpdateSchemaT]):
         )
 
     def create(self, obj_in: CreateSchemaT, db: Session = None) -> ModelT:
-        obj_in_data = jsonable_encoder(obj_in)
+        obj_in_data = obj_in.dict()
         db_obj = self.model(**obj_in_data)
         (db := db or get_session()).add(db_obj)
         db.flush((db_obj,))
@@ -150,6 +151,22 @@ class IntervalScheduleRepo(
         # https://sourcegraph.com/github.com/celery/django-celery-beat/-/blob/django_celery_beat/models.py#L185
 
         return model_schedule
+
+
+class ClockedScheduleRepo(
+    CRUDBase[
+        ClockedSchedule,
+        schemas.ClockedScheduleCreate,
+        schemas.ClockedScheduleUpdate,
+    ]
+):
+    def from_celery_schedule(
+        self,
+        schedule: clocked,
+        db: Session = None,
+    ) -> ClockedSchedule:
+        spec = {"clocked_time": schedule.clocked_time}
+        return self.get_or_create(db=db, **spec)
 
 
 class CrontabScheduleRepo(
@@ -252,5 +269,6 @@ class PeriodicTasksRepo:
 
 interval_schedule_repo = IntervalScheduleRepo(IntervalSchedule)
 crontab_schedule_repo = CrontabScheduleRepo(CrontabSchedule)
+clocked_schedule_repo = ClockedScheduleRepo(ClockedSchedule)
 periodic_tasks_repo = PeriodicTasksRepo(PeriodicTasks)
 periodic_task_repo = PeriodicTaskRepo(PeriodicTask)

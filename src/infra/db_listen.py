@@ -4,6 +4,7 @@ from sqlalchemy import insert, select, update
 from sqlalchemy.event import listen
 
 from src.models import (
+    ClockedSchedule,
     CrontabSchedule,
     IntervalSchedule,
     ModelSchedule,
@@ -49,3 +50,6 @@ listen(IntervalSchedule, "after_update", PeriodicTasksChange.update_changed)
 listen(CrontabSchedule, "after_insert", PeriodicTasksChange.update_changed)
 listen(CrontabSchedule, "after_delete", PeriodicTasksChange.update_changed)
 listen(CrontabSchedule, "after_update", PeriodicTasksChange.update_changed)
+listen(ClockedSchedule, "after_insert", PeriodicTasksChange.update_changed)
+listen(ClockedSchedule, "after_delete", PeriodicTasksChange.update_changed)
+listen(ClockedSchedule, "after_update", PeriodicTasksChange.update_changed)

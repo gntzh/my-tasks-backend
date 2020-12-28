@@ -9,14 +9,13 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql.sqltypes import Interval
 
 from src.lib.sa.timezone import TZDateTime
-from src.tz_crontab import TZCrontab
-from src.utils.crontab_validators import validate_crontab
+from src.tz_crontab import TZCrontab, clocked
 from src.utils.timezone import utcnow
 
 from .mapper import Base
 
 
-# 继承 str，用于 Pydantic
+# Inherits from str, for Pydantic
 class PERIOD_CHOICES(str, enum.Enum):
     DAYS = "days"
     HOURS = "hours"
@@ -97,8 +96,19 @@ class CrontabSchedule(Base):
             )
         )
 
-    def validate(self) -> None:
-        validate_crontab(self.crontab_expr)
+
+class ClockedSchedule(Base):
+    """Clocked schedule."""
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    clocked_time = Column(TZDateTime, nullable=False)
+
+    def __str__(self) -> str:
+        return f"{self.clocked_time}"
+
+    @property
+    def schedule(self) -> clocked:
+        return clocked(clocked_time=self.clocked_time)
 
 
 class PeriodicTasks(Base):
@@ -129,6 +139,9 @@ class PeriodicTask(Base):
 
     crontab_id = Column(Integer, ForeignKey(CrontabSchedule.id))
     crontab = relationship(CrontabSchedule, lazy="joined")
+
+    clocked_id = Column(Integer, ForeignKey(ClockedSchedule.id))
+    clocked = relationship(ClockedSchedule, lazy="joined")
 
     # JSON encoded positional arguments
     args = Column(Text, default="[]")
@@ -185,6 +198,8 @@ class PeriodicTask(Base):
             return self.interval.schedule
         elif self.crontab:
             return self.crontab.schedule
+        if self.clocked:
+            return self.clocked.schedule
         # elif self.solar:
         #     return self.solar.schedule
         raise AttributeError(f"'{self.__class__.__name__}' has no attribute schedule")
@@ -206,6 +221,8 @@ class PeriodicTask(Base):
         if self.interval:
             fmt = "{0.name}: {0.interval}"
         elif self.crontab:
+            fmt = "{0.name}: {0.crontab}"
+        elif self.clocked:
             fmt = "{0.name}: {0.crontab}"
         # elif self.solar:
         #     fmt = "{0.name}: {0.solar}"
