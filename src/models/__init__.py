@@ -128,7 +128,7 @@ class CrontabSchedule(Base):
         )
 
     @classmethod
-    def from_celery_schedule(self, schedule: schedules.tz_crontab) -> "CrontabSchedule":
+    def from_celery_schedule(cls, schedule: schedules.tz_crontab) -> "CrontabSchedule":
         spec = {
             "minute": schedule._orig_minute,
             "hour": schedule._orig_hour,

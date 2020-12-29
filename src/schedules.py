@@ -7,10 +7,10 @@ from celery import Celery
 from celery.schedules import (  # noqa: F401
     BaseSchedule,
     crontab,
+    maybe_schedule,
     schedstate,
     schedule,
     solar,
-    maybe_schedule,
 )
 from celery.utils.time import maybe_make_aware
 

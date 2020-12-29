@@ -2,7 +2,7 @@ import logging
 import math
 from datetime import datetime
 from multiprocessing.util import Finalize
-from typing import Any, Generic, Optional, Type, TypeVar
+from typing import Any, Dict, List, Optional, Tuple, Type
 
 from celery import Celery, current_app
 from celery.beat import ScheduleEntry, Scheduler
@@ -151,7 +151,7 @@ class ModelEntry(ScheduleEntry):
     @classmethod
     def to_model_schedule(
         cls, schedule: schedules.BaseSchedule
-    ) -> tuple[ModelSchedule, str]:
+    ) -> Tuple[ModelSchedule, str]:
         for schedule_type, repo, model_field in cls.model_schedules:
             schedule = schedules.maybe_schedule(schedule)
             if isinstance(schedule, schedule_type):
@@ -162,7 +162,7 @@ class ModelEntry(ScheduleEntry):
 
     @classmethod
     def from_entry(
-        cls, name: str, app: Celery = None, **entry_fields: dict[str, Any]
+        cls, name: str, app: Celery = None, **entry_fields: Any
     ) -> "ModelEntry":
         # XXX Sessions connect too frequently
         with SessionLocal.begin() as session:
@@ -179,8 +179,8 @@ class ModelEntry(ScheduleEntry):
         kwargs: dict = None,
         relative: bool = None,
         options: dict = None,
-        **entry_fields: dict[str, Any]
-    ) -> dict[str, Any]:
+        **entry_fields: Any
+    ) -> Dict[str, Any]:
         model_schedule, model_field = cls.to_model_schedule(schedule)
         entry_fields.update(
             {model_field: model_schedule.id},
@@ -199,8 +199,8 @@ class ModelEntry(ScheduleEntry):
         priority: int = None,
         headers: dict = None,
         expire_seconds: int = None,
-        **kwargs: dict[str, Any]
-    ) -> dict[str, Any]:
+        **kwargs: Any
+    ) -> Dict[str, Any]:
         return {
             "queue": queue,
             "exchange": exchange,
@@ -220,13 +220,12 @@ class ModelEntry(ScheduleEntry):
         )
 
 
-EntryT = TypeVar("EntryT", bound=ModelEntry)
-ScheduleData = dict[str, EntryT]
+ScheduleData = Dict[str, ModelEntry]
 
 
-class DatabaseScheduler(Scheduler, Generic[EntryT]):
+class DatabaseScheduler(Scheduler):
     app: Celery
-    Entry: Type[EntryT] = ModelEntry
+    Entry: Type[ModelEntry] = ModelEntry
     Model: Type[PeriodicTask] = PeriodicTask
     Changes: Type[PeriodicTasks] = PeriodicTasks
 
@@ -237,7 +236,7 @@ class DatabaseScheduler(Scheduler, Generic[EntryT]):
 
     _heap: list
 
-    def __init__(self, *args: list[Any], **kwargs: dict[str, Any]) -> None:
+    def __init__(self, *args: List[Any], **kwargs: Dict[str, Any]) -> None:
         self._dirty: set = set()
         super().__init__(*args, **kwargs)
         self._finalize = Finalize(self, self.sync, exitpriority=5)
@@ -275,8 +274,8 @@ class DatabaseScheduler(Scheduler, Generic[EntryT]):
                 self._last_timestamp = ts
             return False
 
-    def reserve(self, entry: EntryT) -> EntryT:
-        new_entry: EntryT = next(entry)  # TODO 移除 __next__
+    def reserve(self, entry: ModelEntry) -> ModelEntry:
+        new_entry: ModelEntry = next(entry)  # TODO 移除 __next__
         # Need to store entry by name, because the entry may change
         # in the mean time.
         self._dirty.add(new_entry.name)
@@ -301,7 +300,7 @@ class DatabaseScheduler(Scheduler, Generic[EntryT]):
             # retry later, only for the failed ones
             self._dirty |= _failed
 
-    def update_from_dict(self, mapping: dict[str, dict[str, Any]]) -> None:
+    def update_from_dict(self, mapping: Dict[str, Dict[str, Any]]) -> None:
         s = {}
         for name, entry_fields in mapping.items():
             try:
@@ -326,7 +325,7 @@ class DatabaseScheduler(Scheduler, Generic[EntryT]):
             )
         self.update_from_dict(entries)
 
-    def schedules_equal(self, *args: list[str], **kwargs: dict[str, Any]) -> bool:
+    def schedules_equal(self, *args: List[str], **kwargs: Dict[str, Any]) -> bool:
         if self._heap_invalidated:
             self._heap_invalidated = False
             return False
