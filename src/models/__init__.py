@@ -17,7 +17,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql.sqltypes import Interval
 
-from src.lib.sa.timezone import TZDateTime
+from src.libs.sa.timezone import TZDateTime
 from src import schedules
 from src.utils.timezone import utcnow
 
