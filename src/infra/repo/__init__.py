@@ -214,7 +214,7 @@ class PeriodicTaskRepo(
     CRUDBase[PeriodicTask, schemas.PeriodicTaskCreate, schemas.PeriodicTaskUpdate]
 ):
     @staticmethod
-    def _json2str(data: dict[str]) -> None:
+    def _json2str(data: dict[str, Any]) -> None:
         for key in ("args", "kwargs", "headers"):
             if (t := data.get(key)) is not None:
                 data[key] = json.dumps(t)
@@ -222,7 +222,7 @@ class PeriodicTaskRepo(
     def create(
         self, obj_in: schemas.PeriodicTaskCreate, db: Session = None
     ) -> PeriodicTask:
-        obj_in_data = jsonable_encoder(obj_in)
+        obj_in_data = obj_in.dict()
         self._json2str(obj_in_data)
         db_obj = self.model(**obj_in_data)
         (db := db or get_session()).add(db_obj)

@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     # 60 minutes * 24 hours * 7 days = 7 days
     ACCESS_TOKEN_LIFETIME: timedelta = timedelta(minutes=30)
     REFRESH_TOKEN_LIFETIME: timedelta = timedelta(days=30)
+    JWT_ALGORITHM: str = "HS256"
 
     # SQLALCHEMY_DATABASE_URI: str = f"sqlite:///{BASE_DIR.as_posix()}/db.sqlite3"
     # SQLALCHEMY_DATABASE_URI = "postgresql://user:password@postgresserver/db"

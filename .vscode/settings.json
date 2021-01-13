@@ -3,6 +3,7 @@
     "python.linting.mypyEnabled": true,
     "cSpell.words": [
         "AMQP",
+        "bcrypt",
         "cronexp",
         "crontabs",
         "kombu",

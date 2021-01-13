@@ -1,11 +1,15 @@
 from datetime import datetime
-from typing import Optional
 from decimal import Decimal
+from typing import Optional
+
 from pydantic import BaseModel, Field, Json, PositiveInt, root_validator, validator
 
 from src.models import PERIOD_CHOICES
 from src.utils.crontab_validators import validate_crontab
 from src.utils.timezone import utcnow
+
+from .auth import Login, Register, LoginRes, TokenPayload  # noqa: F401
+from .user import User  # noqa: F401
 
 # TODO Customize JsonStr
 # Or refer to django-celery-beat's implementation using JsonField

@@ -7,11 +7,15 @@ version = "0.1.0"
 [tool.poetry.dependencies]
 alembic = "^1.4.3"
 celery = "^5.0.5"
+email-validator = "^1.1.2"
 fastapi = "^0.63.0"
+passlib = {version = "^1.7.4", extras = ["bcrypt"]}
 psycopg2-binary = "^2.8.6"
 pydantic = "^1.7.3"
 python = "^3.9"
 python-crontab = "^2.5.1"
+python-jose = {version = "^3.2.0", extras = ["cryptography"]}
+python-multipart = "^0.0.5"
 redis = "^3.5.3"
 sqlalchemy = "1.4.0b1"
 uvicorn = "^0.13.2"
