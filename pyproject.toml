@@ -1,5 +1,5 @@
 [tool.poetry]
-authors = ["Your Name <you@example.com>"]
+authors = ["shoor <shoorday@outlook.com>"]
 description = ""
 name = "my-tasks"
 version = "0.1.0"
@@ -11,7 +11,7 @@ email-validator = "^1.1.2"
 fastapi = "^0.63.0"
 passlib = {version = "^1.7.4", extras = ["bcrypt"]}
 psycopg2-binary = "^2.8.6"
-pydantic = "^1.7.3"
+pydantic = {version = "^1.7.3", extras = ["dotenv"]}
 python = "^3.9"
 python-crontab = "^2.5.1"
 python-jose = {version = "^3.2.0", extras = ["cryptography"]}
