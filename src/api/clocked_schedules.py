@@ -3,7 +3,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 
 from src import schemas
-from src.infra.repo import clocked_schedule_repo
+from src.infra.repo.repo import clocked_schedule_repo
 from src.infra.session import get_session
 
 router = APIRouter()

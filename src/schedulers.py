@@ -13,7 +13,7 @@ from kombu.utils.json import dumps, loads
 from sqlalchemy.orm import sessionmaker
 
 from src import schedules
-from src.infra.repo import (
+from src.infra.repo.repo import (
     clocked_schedule_repo,
     crontab_schedule_repo,
     interval_schedule_repo,
@@ -22,7 +22,7 @@ from src.infra.repo import (
     solar_schedule_repo,
 )
 from src.infra.session import engine
-from src.models import ModelSchedule, PeriodicTask, PeriodicTasks
+from src.models.models import ModelSchedule, PeriodicTask, PeriodicTasks
 from src.utils import NEVER_CHECK_TIMEOUT
 
 # This scheduler must wake up more frequently than the

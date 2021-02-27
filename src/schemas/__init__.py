@@ -4,7 +4,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field, Json, PositiveInt, root_validator, validator
 
-from src.models import PERIOD_CHOICES
+from src.models.models import PERIOD_CHOICES
 from src.utils.crontab_validators import validate_crontab
 from src.utils.timezone import utcnow
 

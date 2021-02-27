@@ -2,12 +2,12 @@ from typing import Any
 
 from sqlalchemy.orm import declared_attr, registry
 from src.utils import camel_to_snake
-
+from .models import Base as CelerySchedulerBase
 
 __all__ = ["Base", "mapper_registry"]
 
 
-mapper_registry = registry()
+mapper_registry = registry(metadata=CelerySchedulerBase.metadata)
 
 
 @mapper_registry.as_declarative_base()

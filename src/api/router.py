@@ -3,7 +3,7 @@ from typing import Optional
 
 from fastapi import APIRouter
 
-from src.infra.repo import periodic_tasks_repo
+from src.infra.repo.repo import periodic_tasks_repo
 
 from .clocked_schedules import router as clocked_schedules_router
 from .solar_schedules import router as solar_schedules_router

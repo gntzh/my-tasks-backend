@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Union
 from sqlalchemy import insert, select, update
 from sqlalchemy.event import listen
 
-from src.models import (
+from src.models.models import (
     ClockedSchedule,
     CrontabSchedule,
     IntervalSchedule,

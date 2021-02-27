@@ -1,6 +1,7 @@
 # imported by Alembic
 # provides target_metadata to Alembic
-from src.models import (  # noqa: F401
+from src.models.mapper import Base
+from src.models.models import (  # noqa: F401
     ClockedSchedule,
     CrontabSchedule,
     IntervalSchedule,
@@ -8,7 +9,6 @@ from src.models import (  # noqa: F401
     PeriodicTasks,
     SolarSchedule,
 )
-from src.models.mapper import Base
 from src.models.user import User  # noqa: F401
 
 __all__ = ["metadata"]

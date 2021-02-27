@@ -3,7 +3,7 @@ from typing import Optional, Type
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from src.infra.repo import CRUDBase
+from .base import CRUDBase
 from src.models.user import User
 
 
