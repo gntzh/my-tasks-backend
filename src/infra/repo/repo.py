@@ -14,7 +14,7 @@ from src.models.models import (
     CrontabSchedule,
     IntervalSchedule,
     PeriodicTask,
-    PeriodicTasks,
+    PeriodicTasksChange,
     SolarSchedule,
 )
 from src.utils.timezone import utcnow
@@ -164,14 +164,14 @@ class PeriodicTaskRepo(
         )
 
 
-class PeriodicTasksRepo:
-    def __init__(self, model: Type[PeriodicTasks]) -> None:
+class PeriodicTasksChangeRepo:
+    def __init__(self, model: Type[PeriodicTasksChange]) -> None:
         self.model = model
 
-    def get(self, db: Session = None) -> PeriodicTasks:
+    def get(self, db: Session = None) -> PeriodicTasksChange:
         return get_session(db).execute(select(self.model)).scalar()
 
-    def update_or_create(self, db: Session = None) -> PeriodicTasks:
+    def update_or_create(self, db: Session = None) -> PeriodicTasksChange:
         session = get_session(db)
         if db_obj := session.execute(select(self.model)).scalar():
             db_obj.last_update = utcnow()
@@ -185,5 +185,5 @@ interval_schedule_repo = IntervalScheduleRepo(IntervalSchedule)
 crontab_schedule_repo = CrontabScheduleRepo(CrontabSchedule)
 clocked_schedule_repo = ClockedScheduleRepo(ClockedSchedule)
 solar_schedule_repo = SolarScheduleRepo(SolarSchedule)
-periodic_tasks_repo = PeriodicTasksRepo(PeriodicTasks)
+periodic_tasks_change_repo = PeriodicTasksChangeRepo(PeriodicTasksChange)
 periodic_task_repo = PeriodicTaskRepo(PeriodicTask)

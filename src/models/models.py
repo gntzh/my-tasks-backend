@@ -192,7 +192,7 @@ class SolarSchedule(Base):
         return cls(**spec)
 
 
-class PeriodicTasks(Base):
+class PeriodicTasksChange(Base):
     """Helper table for tracking updates to periodic tasks.
 
     This stores a single row with ident=1.  last_update is updated
@@ -201,7 +201,7 @@ class PeriodicTasks(Base):
     Doing this so we also track deletions, and not just insert/update.
     """
 
-    __tablename__ = "celery_periodic_tasks"
+    __tablename__ = "celery_periodic_tasks_change"
 
     last_update = Column(TZDateTime, primary_key=True, nullable=False)
 

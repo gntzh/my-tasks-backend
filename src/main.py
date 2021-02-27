@@ -1,14 +1,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-import src.infra.db_listen  # noqa: F401
 from src.api.auth import router as auth_router
 from src.api.router import router
+from src.infra.db_listen import listen_db
 from src.infra.session import DBSessionMiddleware
 
 app = FastAPI(title="My Tasks")
 
 app.add_middleware(DBSessionMiddleware)
+listen_db()
 
 origins = [
     "http://localhost",

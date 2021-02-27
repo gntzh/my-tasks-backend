@@ -13,16 +13,17 @@ from kombu.utils.json import dumps, loads
 from sqlalchemy.orm import sessionmaker
 
 from src import schedules
+from src.infra.db_listen import listen_db
 from src.infra.repo.repo import (
     clocked_schedule_repo,
     crontab_schedule_repo,
     interval_schedule_repo,
     periodic_task_repo,
-    periodic_tasks_repo,
+    periodic_tasks_change_repo,
     solar_schedule_repo,
 )
 from src.infra.session import engine
-from src.models.models import ModelSchedule, PeriodicTask, PeriodicTasks
+from src.models.models import ModelSchedule, PeriodicTask, PeriodicTasksChange
 from src.utils import NEVER_CHECK_TIMEOUT
 
 # This scheduler must wake up more frequently than the
@@ -35,8 +36,7 @@ Cannot add entry %r to database schedule: %r. Contents: %r
 """
 
 # Bootstrap
-from src.infra import db_listen  # noqa: F401, E402
-
+listen_db()
 logger = get_logger(__name__)
 debug, info, warning = logger.debug, logger.info, logger.warning
 
@@ -227,7 +227,7 @@ class DatabaseScheduler(Scheduler):
     app: Celery
     Entry: Type[ModelEntry] = ModelEntry
     Model: Type[PeriodicTask] = PeriodicTask
-    Changes: Type[PeriodicTasks] = PeriodicTasks
+    Changes: Type[PeriodicTasksChange] = PeriodicTasksChange
 
     _schedule: Optional[ScheduleData] = None
     _last_timestamp: Optional[datetime] = None
@@ -266,7 +266,7 @@ class DatabaseScheduler(Scheduler):
     def schedule_changed(self) -> bool:
         with SessionLocal.begin() as session:
             last = self._last_timestamp
-            ts = periodic_tasks_repo.get(db=session).last_update
+            ts = periodic_tasks_change_repo.get(db=session).last_update
             try:
                 if ts and ts > (last if last else ts):
                     return True

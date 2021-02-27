@@ -6,7 +6,7 @@ from src.models.models import (  # noqa: F401
     CrontabSchedule,
     IntervalSchedule,
     PeriodicTask,
-    PeriodicTasks,
+    PeriodicTasksChange,
     SolarSchedule,
 )
 from src.models.user import User  # noqa: F401

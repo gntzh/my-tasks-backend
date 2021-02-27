@@ -3,7 +3,7 @@ from typing import Optional
 
 from fastapi import APIRouter
 
-from src.infra.repo.repo import periodic_tasks_repo
+from src.infra.repo.repo import periodic_tasks_change_repo
 
 from .clocked_schedules import router as clocked_schedules_router
 from .solar_schedules import router as solar_schedules_router
@@ -47,7 +47,7 @@ router.include_router(
 
 @router.get("/last_update", response_model=Optional[datetime])
 def last_update() -> Optional[datetime]:
-    if (obj := periodic_tasks_repo.get()) is None:
+    if (obj := periodic_tasks_change_repo.get()) is None:
         return None
     else:
         return obj.last_update
