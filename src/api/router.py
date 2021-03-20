@@ -6,10 +6,10 @@ from fastapi import APIRouter
 from src.infra.repo.repo import periodic_tasks_change_repo
 
 from .clocked_schedules import router as clocked_schedules_router
-from .solar_schedules import router as solar_schedules_router
 from .crontab_schedules import router as crontab_scheduler_router
 from .interval_schedules import router as interval_schedules_router
 from .periodic_tasks import router as periodic_task_router
+from .solar_schedules import router as solar_schedules_router
 
 router = APIRouter()
 
@@ -45,7 +45,7 @@ router.include_router(
 )
 
 
-@router.get("/last_update", response_model=Optional[datetime])
+@router.get("/last_update", response_model=datetime)
 def last_update() -> Optional[datetime]:
     if (obj := periodic_tasks_change_repo.get()) is None:
         return None

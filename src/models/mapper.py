@@ -13,7 +13,7 @@ mapper_registry = registry(metadata=CelerySchedulerBase.metadata)
 @mapper_registry.as_declarative_base()
 class Base(object):
     id: Any
-    __tablename__: str
+    __name__: str
 
     @declared_attr
     def __tablename__(cls) -> str:

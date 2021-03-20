@@ -8,7 +8,7 @@ from src.models.models import PERIOD_CHOICES
 from src.utils.crontab_validators import validate_crontab
 from src.utils.timezone import utcnow
 
-from .auth import Login, Register, LoginRes, TokenPayload  # noqa: F401
+from .auth import Login, LoginRes, Register, TokenPayload  # noqa: F401
 from .user import User  # noqa: F401
 
 # TODO Customize JsonStr

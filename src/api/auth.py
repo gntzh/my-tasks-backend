@@ -59,7 +59,7 @@ def refresh_token(
     refresh_token: str = Body(...),
     token_type: str = Body("bearer"),
     uow: Session = Depends(get_db),
-):
+) -> Any:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",

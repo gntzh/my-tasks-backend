@@ -14,7 +14,7 @@ from src.models.models import (
 from src.utils.timezone import utcnow
 
 if TYPE_CHECKING:
-    from sqlalchemy.engine import Connection
+    from sqlalchemy.engine.base import Connection
     from sqlalchemy.orm import Mapper
 
 

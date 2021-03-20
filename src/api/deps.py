@@ -4,7 +4,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from jose import jwt
 from pydantic import ValidationError
-from sqlalchemy.orm import session
+from sqlalchemy.orm import Session
 
 from src.infra.session import SessionLocal
 from src.infra.repo.user import user_repo
@@ -31,7 +31,7 @@ def get_db() -> Generator:
 async def get_current_user(
     security_scopes: SecurityScopes,
     token: str = Depends(reusable_oauth2),
-    uow: session = Depends(get_db),
+    uow: Session = Depends(get_db),
 ) -> User:
     if security_scopes.scopes:
         authenticate_value = f'Bearer scope="{security_scopes.scope_str}"'
