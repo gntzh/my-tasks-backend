@@ -15,37 +15,37 @@ router = APIRouter()
 
 router.include_router(
     interval_schedules_router,
-    prefix="/interval_schedules",
+    prefix="/interval-schedules",
     tags=["Interval Schedules"],
 )
 
 router.include_router(
     crontab_scheduler_router,
-    prefix="/crontab_schedules",
+    prefix="/crontab-schedules",
     tags=["Crontab Schedules"],
 )
 
 router.include_router(
     clocked_schedules_router,
-    prefix="/clocked_schedules",
+    prefix="/clocked-schedules",
     tags=["Clocked Schedules"],
 )
 
 router.include_router(
     solar_schedules_router,
-    prefix="/solar_schedules",
+    prefix="/solar-schedules",
     tags=["Solar Schedules"],
 )
 
 
 router.include_router(
     periodic_task_router,
-    prefix="/periodic_tasks",
+    prefix="/periodic-tasks",
     tags=["Periodic Tasks"],
 )
 
 
-@router.get("/last_update", response_model=datetime)
+@router.get("/last-update", response_model=datetime, tags=["Periodic Tasks"])
 def last_update() -> Optional[datetime]:
     if (obj := periodic_tasks_change_repo.get()) is None:
         return None

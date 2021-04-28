@@ -130,13 +130,11 @@ class ModelEntry(ScheduleEntry):
         last_run_at_in_tz = maybe_make_aware(self.last_run_at).astimezone(tz)
         return self.schedule.is_due(last_run_at_in_tz)
 
-    def _next_instance(self, last_run_at: datetime = None) -> "ModelEntry":
+    def __next__(self, last_run_at: datetime = None) -> "ModelEntry":
         self.model.last_run_at = last_run_at or self._default_now()
         self.model.total_run_count += 1
         self.model.no_changes = True
         return self.__class__(self.model)
-
-    __next__ = next = _next_instance  # for 2to3
 
     def save(self) -> None:
         # Object may not be synchronized, so only
@@ -229,7 +227,7 @@ class DatabaseScheduler(Scheduler):
     Model: Type[PeriodicTask] = PeriodicTask
     Changes: Type[PeriodicTasksChange] = PeriodicTasksChange
 
-    _schedule: Optional[ScheduleData] = None
+    _schedule: ScheduleData = {}
     _last_timestamp: Optional[datetime] = None
     _initial_read: bool = True
     _heap_invalidated: bool = False
@@ -354,4 +352,5 @@ class DatabaseScheduler(Scheduler):
                     "Current schedule:\n%s",
                     "\n".join(repr(entry) for entry in self._schedule.values()),
                 )
+        # FIXME type hints schedule
         return self._schedule

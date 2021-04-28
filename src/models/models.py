@@ -1,6 +1,6 @@
 import enum
 from datetime import timedelta
-from typing import Any, Union
+from typing import Any, Optional, Union
 
 import pytz
 from sqlalchemy import (
@@ -52,8 +52,8 @@ class IntervalSchedule(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     # XXX Maybe sqlalchemy.types.Interval is better
     # 1 ≤ every
-    every = Column(Integer, nullable=False)
-    period = Column(String(24), Enum(PERIOD_CHOICES), nullable=False)
+    every: int = Column(Integer, nullable=False)
+    period: str = Column(String(24), Enum(PERIOD_CHOICES), nullable=False)
 
     @property
     def schedule(self) -> schedules.schedule:
@@ -82,17 +82,17 @@ class CrontabSchedule(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     # minute ≤ 60*4
-    minute = Column(String(60 * 4), nullable=False, default="*")
+    minute: str = Column(String(60 * 4), nullable=False, default="*")
     # hour ≤ 24*4
-    hour = Column(String(24 * 4), nullable=False, default="*")
+    hour: str = Column(String(24 * 4), nullable=False, default="*")
     # day_of_month ≤ 31*4
-    day_of_month = Column(String(31 * 4), nullable=False, default="*")
+    day_of_month: str = Column(String(31 * 4), nullable=False, default="*")
     # month_of_year ≤ 64
-    month_of_year = Column(String(64), nullable=False, default="*")
+    month_of_year: str = Column(String(64), nullable=False, default="*")
     # day_of_week ≤ 64
-    day_of_week = Column(String(64), nullable=False, default="*")
+    day_of_week: str = Column(String(64), nullable=False, default="*")
     # TIMEZONE str
-    timezone = Column(String(63), nullable=False, default="UTC")
+    timezone: str = Column(String(63), nullable=False, default="UTC")
 
     def __str__(self) -> str:
         return "{0} {1} {2} {3} {4} (m/h/dM/MY/d) {5}".format(
@@ -216,16 +216,16 @@ class PeriodicTask(Base):
     task = Column(String(200))
 
     interval_id = Column(Integer, ForeignKey(IntervalSchedule.id))
-    interval = relationship(IntervalSchedule, lazy="joined")
+    interval: Optional[IntervalSchedule] = relationship(IntervalSchedule, lazy="joined")
 
     crontab_id = Column(Integer, ForeignKey(CrontabSchedule.id))
-    crontab = relationship(CrontabSchedule, lazy="joined")
+    crontab: Optional[CrontabSchedule] = relationship(CrontabSchedule, lazy="joined")
 
     clocked_id = Column(Integer, ForeignKey(ClockedSchedule.id))
-    clocked = relationship(ClockedSchedule, lazy="joined")
+    clocked: Optional[ClockedSchedule] = relationship(ClockedSchedule, lazy="joined")
 
     solar_id = Column(Integer, ForeignKey(SolarSchedule.id))
-    solar = relationship(SolarSchedule, lazy="joined")
+    solar: Optional[SolarSchedule] = relationship(SolarSchedule, lazy="joined")
 
     # JSON encoded positional arguments
     args = Column(Text, default="[]")

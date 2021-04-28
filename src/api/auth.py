@@ -30,7 +30,7 @@ def register(data: schemas.Register, uow: Session = Depends(get_db)) -> Any:
     return user
 
 
-@router.post("/login/token", response_model=schemas.LoginRes)
+@router.post("/token", response_model=schemas.LoginRes)
 def token(
     data: OAuth2PasswordRequestForm = Depends(),
     uow: Session = Depends(get_db),

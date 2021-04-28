@@ -13,7 +13,7 @@ from src.config import settings
 from src import schemas
 
 reusable_oauth2 = OAuth2PasswordBearer(
-    tokenUrl="/auth/login/token",
+    tokenUrl="/auth/token",
     scopes={
         "basic": "基础权限",
     },
