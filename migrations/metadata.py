@@ -9,7 +9,6 @@ from src.models.models import (  # noqa: F401
     PeriodicTasksChange,
     SolarSchedule,
 )
-from src.models.user import User  # noqa: F401
 
 __all__ = ["metadata"]
 
