@@ -2,7 +2,7 @@ from typing import Any, Generic, Optional, Protocol, Type, TypeVar, Union
 
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm.session import Session
 
 from src.infra.session import get_session
@@ -22,6 +22,9 @@ UpdateSchemaT = TypeVar("UpdateSchemaT", bound=BaseModel)
 class CRUDBase(Generic[ModelT, CreateSchemaT, UpdateSchemaT]):
     def __init__(self, model: Type[ModelT]) -> None:
         self.model = model
+
+    def count(self, db: Session) -> int:
+        return db.execute(select(func.count(self.model.id))).scalars().one()
 
     def get(self, id: Any, db: Session = None) -> Optional[ModelT]:
         return (
