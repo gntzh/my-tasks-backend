@@ -1,10 +1,11 @@
 import time
 
 from celery import Celery
+from src import celery_config
 
-app = Celery("tasks", broker="redis://127.0.0.1:6379/0")
+app = Celery(broker="redis://127.0.0.1:6379/0")
 
-app.conf.timezone = "Asia/Shanghai"
+app.config_from_object(celery_config)
 
 
 @app.task
