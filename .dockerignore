@@ -1,0 +1,13 @@
+.git
+**/__pycache__
+.mypy_cache
+.pytest_cache
+.venv
+htmlcov
+
+.coverage
+
+db.sqlite3
+
+# Editor / IDE
+.vscode
