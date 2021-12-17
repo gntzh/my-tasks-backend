@@ -40,6 +40,7 @@ def my_utcnow(element: FunctionElement, compiler: "SQLCompiler", **kw: dict) -> 
 # https://docs.sqlalchemy.org/en/14/core/custom_types.html#store-timezone-aware-timestamps-as-timezone-naive-utc
 class TZDateTime(TypeDecorator):
     impl = DateTime(timezone=False)
+    cache_ok = True
 
     def process_bind_param(
         self, value: Optional[datetime], dialect: "Dialect"
