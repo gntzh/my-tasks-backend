@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.api.auth import router as auth_router
 from src.api.router import router
 from src.infra.db_listen import listen_db
 from src.infra.session import DBSessionMiddleware
@@ -25,10 +24,4 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(
-    auth_router,
-    prefix="/auth",
-    tags=["Auth"],
-)
-
-app.include_router(router, prefix="/celery-beat")
+app.include_router(router)

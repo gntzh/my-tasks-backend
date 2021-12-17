@@ -1,9 +1,9 @@
 import time
-
+import os
 from celery import Celery
 from src import celery_config
 
-app = Celery(broker="redis://127.0.0.1:6379/0")
+app = Celery(broker=os.environ["CELERY_BROKEY_URL"])
 
 app.config_from_object(celery_config)
 
